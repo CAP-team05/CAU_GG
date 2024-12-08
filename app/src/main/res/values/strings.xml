@@ -1,0 +1,7 @@
+<resources>
+    <string name="app_name">CauGGTest</string>
+    <string name="signin">Sign In</string>
+    <string name="signintext">CAUGG 계정이 없습니다.</string>
+    <string name="signup">Sign Up</string>
+    <string name="signuptext">이미 CAUGG 계정이 있어요!</string>
+</resources>
