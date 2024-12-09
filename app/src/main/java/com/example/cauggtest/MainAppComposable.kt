@@ -7,9 +7,9 @@ import androidx.compose.ui.Modifier
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import com.example.cauggtest.feature.home.HomeScreen
 import com.example.cauggtest.feature.auth.signin.SignInScreen
 import com.example.cauggtest.feature.auth.signup.SignUpScreen
-import com.example.cauggtest.feature.home.HomeScreen
 import com.example.cauggtest.feature.mastery.MasteryScreen
 import com.example.cauggtest.feature.noticeboard.NoticeBoardScreen
 import com.example.cauggtest.feature.noticeboard.WriteScreen

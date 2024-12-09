@@ -1,33 +1,25 @@
 package com.example.cauggtest.feature.mastery
 
+import android.util.Log
 import androidx.compose.foundation.Image
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.R
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.layout.wrapContentSize
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ExitToApp
-import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material.icons.filled.ArrowDropDown
-import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
@@ -35,16 +27,11 @@ import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExposedDropdownMenuBox
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.ModalBottomSheet
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
-import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -55,6 +42,7 @@ import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
@@ -64,22 +52,61 @@ import androidx.compose.ui.unit.sp
 //import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import androidx.navigation.compose.rememberNavController
+import com.example.cauggtest.api.RankingResponse
+import com.example.cauggtest.api.RetrofitInstance
 import com.example.cauggtest.feature.bottomnavigation.BottomNavigationBar
 import com.example.cauggtest.ui.theme.SkyBlue40
-import com.example.cauggtest.R.drawable.school
-
+import retrofit2.Call
+import retrofit2.Callback
+import retrofit2.Response
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MasteryScreen(navController: NavController) {
-
     var isDropdownExpanded by remember { mutableStateOf(false) }
     var selectedDepartment by remember { mutableStateOf("소프트") }
-    val departments = listOf("소프트", "전자전기", "기계", "건축", "AI", "의학부", "약학부", "ICT", "화학공학", "기계공학"
-        , "에너지시스템공학", "첨단소재공학", "물리학과", "화학과", "생명과학과", "수학과",
-        "교육학과", "유아교육과", "영어교육과", "체육교육과", "국어국문학과", "영어영문학과", "유럽문화학부",
-        "아시아문화학부", "철학과", "역사학과", "정치국제학과", "공공인재학부", "심리학과", "문헌정보학과", "사회복지학부",
-        "미디어커뮤니케이션학부", "도시계획부동산학과", "사회학과")
+    val departments = listOf(
+        "소프트", "전자전기", "기계", "건축", "AI", "의학부", "약학부", "ICT", "화학공학",
+        "기계공학", "에너지시스템공학", "첨단소재공학", "물리학과", "화학과", "생명과학과",
+        "수학과", "교육학과", "유아교육과", "영어교육과", "체육교육과", "국어국문학과",
+        "영어영문학과", "유럽문화학부", "아시아문화학부", "철학과", "역사학과",
+        "정치국제학과", "공공인재학부", "심리학과", "문헌정보학과", "사회복지학부",
+        "미디어커뮤니케이션학부", "도시계획부동산학과", "사회학과"
+    )
+
+    // 네트워크 요청 결과를 상태로 관리
+    val context = LocalContext.current
+    val (summonerList, setSummonerList) = remember { mutableStateOf<List<SummonerData>>(emptyList()) }
+
+    LaunchedEffect(selectedDepartment) {
+        // 학과가 변경되면 네트워크 요청 실행
+        RetrofitInstance.api.getRanking(selectedDepartment).enqueue(object :
+            Callback<List<RankingResponse>> {
+            override fun onResponse(
+                call: Call<List<RankingResponse>>,
+                response: Response<List<RankingResponse>>
+            ) {
+                if (response.isSuccessful) {
+                    // 응답 데이터를 SummonerData 형태로 변환하여 상태 업데이트
+                    val rankingData = response.body()?.map { ranking ->
+                        SummonerData(
+                            nickname = ranking.nickname,
+                            tier = ranking.solo_rank,
+                            lp = parseLP(ranking.solo_rank), // LP 값 추출
+                            mostChampion = ranking.most
+                        )
+                    } ?: emptyList()
+                    setSummonerList(rankingData)
+                } else {
+                    Log.e("MasteryScreen", "Error: ${response.code()}")
+                }
+            }
+
+            override fun onFailure(call: Call<List<RankingResponse>>, t: Throwable) {
+                Log.e("MasteryScreen", "Request failed: ${t.message}")
+            }
+        })
+    }
 
     Scaffold(
         containerColor = SkyBlue40,
@@ -112,53 +139,13 @@ fun MasteryScreen(navController: NavController) {
             ) {
                 Spacer(modifier = Modifier.height(50.dp))
 
-                // 현재 이용자 수
-                Row(
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Box(
-                        modifier = Modifier
-                            .size(12.dp)
-                            .clip(RoundedCornerShape(50))
-                            .background(Color(0xFF7CFC00))
-                    )
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text(
-                        text = "현재 1명 이용중입니다",
-                        style = TextStyle(color = Color(0xFF7CFC00), fontSize = 16.sp, fontWeight = FontWeight.Bold),
-                    )
-                }
-                Spacer(modifier = Modifier.height(12.dp))
-                Text(
-                    text = "CAU.GG",
-                    style = MaterialTheme.typography.displayLarge.copy(
-                        color = Color.White,
-                        fontSize = 65.sp
-                    ),
-                    textAlign = TextAlign.Center
-                )
-
-                // "현재 학과별 탑티어리스트" 텍스트 추가
-                Spacer(modifier = Modifier.height(100.dp))
-                Text(
-                    text = "현재 학과별 탑티어리스트",
-                    style = TextStyle(
-                        color = Color.White,
-                        fontSize = 14.sp,
-                        fontWeight = FontWeight.Normal
-                    ) ,
-                    modifier = Modifier.fillMaxWidth().align(Alignment.Start)
-                )
-
-                Spacer(modifier = Modifier.height(12.dp))
-
                 // 학과 선택 버튼 UI
                 Column(
                     modifier = Modifier
                         .padding(16.dp)
                         .fillMaxWidth()
                 ) {
-                    // 학과 선택 버튼
+                    // 학과 선택 드롭다운
                     Button(
                         onClick = { isDropdownExpanded = !isDropdownExpanded },
                         modifier = Modifier
@@ -172,12 +159,10 @@ fun MasteryScreen(navController: NavController) {
                         )
                     }
 
-                    // 드롭다운 메뉴
                     ExposedDropdownMenuBox(
                         expanded = isDropdownExpanded,
                         onExpandedChange = { isDropdownExpanded = it }
                     ) {
-                        // 드롭다운 버튼 클릭 시 표시되는 목록
                         TextField(
                             value = selectedDepartment,
                             onValueChange = {},
@@ -194,7 +179,6 @@ fun MasteryScreen(navController: NavController) {
                                 .menuAnchor()
                         )
 
-                        // 선택할 학과 목록
                         ExposedDropdownMenu(
                             expanded = isDropdownExpanded,
                             onDismissRequest = { isDropdownExpanded = false }
@@ -204,7 +188,7 @@ fun MasteryScreen(navController: NavController) {
                                     text = { Text(department) },
                                     onClick = {
                                         selectedDepartment = department
-                                        isDropdownExpanded = false // 메뉴 닫기
+                                        isDropdownExpanded = false
                                     }
                                 )
                             }
@@ -215,13 +199,14 @@ fun MasteryScreen(navController: NavController) {
                 Spacer(modifier = Modifier.height(10.dp))
 
                 LazyColumn {
-                    items(10) { index ->
+                    items(summonerList.size) { index ->
+                        val summoner = summonerList[index]
                         SummonerInfo(
                             rank = index + 1,
-                            summonerName = "괴물쥐",
-                            summonerTier = "master",
-                            summonerLP = 100,
-                            summonerIconRes = com.example.cauggtest.R.drawable.icon_zeri // 챔피언 아이콘
+                            summonerName = summoner.nickname,
+                            summonerTier = summoner.tier,
+                            summonerLP = summoner.lp,
+                            summonerIconRes = getChampionIconRes(summoner.mostChampion)
                         )
                     }
                 }
@@ -230,12 +215,37 @@ fun MasteryScreen(navController: NavController) {
     }
 }
 
+// LP 값 파싱 함수
+fun parseLP(rankString: String): String {
+    val regex = """(\d+)LP""".toRegex()
+    return regex.find(rankString)?.groupValues?.get(1) ?: "0"
+}
+
+data class SummonerData(
+    val nickname: String,
+    val tier: String,
+    val lp: String,
+    val mostChampion: String
+)
+
+
+
+// 챔피언 이름에 따라 리소스 ID를 가져오는 함수
+@Composable
+fun getChampionIconRes(championName: String): Int {
+    val resourceName = "icon_${championName.lowercase()}"
+    val context = LocalContext.current
+    return context.resources.getIdentifier(resourceName, "drawable", context.packageName)
+}
+
+
+//랭킹에 쓸 카드
 @Composable
 fun SummonerInfo(
     rank: Int,
     summonerName: String,
     summonerTier: String,
-    summonerLP: Int,
+    summonerLP: String,
     summonerIconRes: Int
 ) {
     Card(
