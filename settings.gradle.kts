@@ -19,5 +19,6 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "Caugg"
+rootProject.name = "CauGGTest"
 include(":app")
+ 
